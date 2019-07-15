@@ -12,14 +12,14 @@ Casino{
 			submodule User {
 				op {
 					type: Read
-					operates_on: UserAcc
+					operates_on: User
 				}
 				op {
 					type: Create
-					operates_on: UserAcc
+					operates_on: User
 				}
-				specialEntity UserAcc {
-					idUserAcc:Num
+				specialEntity User {
+					idUser:Num
 					idEmployee:Num
 					username:String
 					password:String
@@ -209,7 +209,7 @@ Casino{
 		rel {
 			type:Composition
 			source: Employee
-			target: UserAcc
+			target: User
 		}
 	} //Domain
 	

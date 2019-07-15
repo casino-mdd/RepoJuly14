@@ -27,10 +27,10 @@ class MyDslGenerator extends AbstractGenerator {
 	override void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
 
 		var frontGen = new FrontGenerator;
-		//var specialEntityGen = new SpecialEntityGenerator;
-
+		var specialEntityGen = new SpecialEntityGenerator;
+		
 		frontGen.doGenerate(resource, fsa, context);
-		//specialEntityGen.doGenerate(resource, fsa, context);
+		specialEntityGen.doGenerate(resource, fsa, context);
 
 		for (layerS : resource.allContents.toIterable.filter(LayerSegment)) {
 
