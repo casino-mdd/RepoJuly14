@@ -27,8 +27,10 @@ class MyDslGenerator extends AbstractGenerator {
 	override void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
 
 		var frontGen = new FrontGenerator;
+		//var specialEntityGen = new SpecialEntityGenerator;
 
 		frontGen.doGenerate(resource, fsa, context);
+		//specialEntityGen.doGenerate(resource, fsa, context);
 
 		for (layerS : resource.allContents.toIterable.filter(LayerSegment)) {
 
@@ -39,13 +41,6 @@ class MyDslGenerator extends AbstractGenerator {
 
 		}
 
-	// Descriptor
-	/*for (layerS : resource.allContents.toIterable.filter(LayerSegment)) {
-	 * 	for (subp : resource.allContents.toIterable.filter(Subproject)) {
-	 * 		for (descriptor : subp.descriptor) {
-	 * 		}
-	 * 	}
-	 }*/
 	}
 
 	def buildPackage(String namePackage, LayerSegment layerS, Resource resource, IFileSystemAccess2 fsa) {
@@ -68,7 +63,7 @@ class MyDslGenerator extends AbstractGenerator {
 									subp.fullyQualifiedName.toString("/") + "/" + descriptor.path + "/" +
 									descriptor.name.replaceAll("_", "."), descriptor.compilePersitenceXml);
 						}
-						
+
 						if (descriptor.name.equals("web_xml")) {
 							fsa.generateFile(
 								layerS.eContainer.eContainer.fullyQualifiedName.toString + "/" +
@@ -115,7 +110,7 @@ class MyDslGenerator extends AbstractGenerator {
 		return type;
 	}
 
-	def compilePersitenceXml(Descriptor d)'''
+	def compilePersitenceXml(Descriptor d) '''
 		<?xml version="1.0" encoding="UTF-8"?>
 		<persistence version="2.0" xmlns="http://java.sun.com/xml/ns/persistence" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://java.sun.com/xml/ns/persistence http://java.sun.com/xml/ns/persistence/persistence_2_0.xsd">
 		    <persistence-unit name="casino-ejbPU" transaction-type="JTA">
@@ -129,17 +124,11 @@ class MyDslGenerator extends AbstractGenerator {
 		    </persistence-unit>
 		</persistence>
 	'''
-	
-	def compileWebXml(Descriptor d)'''
+
+	def compileWebXml(Descriptor d) '''
 		<?xml version="1.0" encoding="UTF-8"?>
 		<web-app version="3.1" xmlns="http://xmlns.jcp.org/xml/ns/javaee" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee http://xmlns.jcp.org/xml/ns/javaee/web-app_3_1.xsd">
 		</web>
-	'''
-
-	def compile(Subproject s) ''' 
-	'''
-
-	def compileDescriptor(Descriptor d) ''' 
 	'''
 
 	def compile(Epackage pck) ''' 
@@ -169,15 +158,28 @@ class MyDslGenerator extends AbstractGenerator {
 		}
 		
 	'''
+
 	def compileDto(GeneralEntity e) ''' 
 		
 		package mdd.casino.jpa.entity.dto;
 		
 		public class «e.name.name»Dto {
-			
+			«FOR p : e.properties»
+				private «typeJava(p.type.name)» «p.name»;
+			«ENDFOR»
+						
+			«FOR p : e.properties»
+				public void set«p.name.toFirstUpper()»(«typeJava(p.type.name)» «p.name»){
+					this.«p.name»=«p.name»;
+					  }
+					 public «typeJava(p.type.name)» get«p.name.toFirstUpper()»(){
+					 	return this.«p.name»;
+					 }
+			«ENDFOR»
 		}
 		
 	'''
+
 	def compileRest(GeneralEntity e) ''' 
 		
 		package mdd.casino.rest.entity;
@@ -199,6 +201,7 @@ class MyDslGenerator extends AbstractGenerator {
 		}
 		
 	'''
+
 	def compileFacade(GeneralEntity e) ''' 
 		
 		package mdd.casino.jpa.entity.facade;
