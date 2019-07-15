@@ -1,0 +1,411 @@
+grammar org.xtext.example.mydsl.MyDsl with org.eclipse.xtext.common.Terminals
+
+generate myDsl "http://www.xtext.org/example/mydsl1/MyDsl"
+
+//---------------------- System ------------------------------------------------
+System: 'Casino' '{' 
+	dom=Domain
+	arch=Architecture
+	tech=Technology
+	'}'
+;
+
+// --------------------- Domain ------------------------------------------------
+Domain: 'domain' '{'
+	(types+=Type)*
+	(modules+=Module)+
+	(relations+=RelationDom)+
+	'}'
+;	
+ 
+Module: 'module' name=ID '{'
+	(submodules+=Submodule)+
+	'}' 
+;
+	
+Submodule: 'submodule' name=ID '{'
+	(operations+=Operation)+
+	(entities+= (GeneralEntity | SpecialEntity) )+
+	'}'
+;
+
+Operation: 'op' '{'
+	'type:' type=SubOperation
+	'operates_on:' target+=EntityName
+	'}'	
+;
+
+EntityName:
+     name=ID
+;
+
+SubOperation:
+	'Read' | 'Create'
+;
+
+GeneralEntity: 
+	'generalEntity' name=EntityName '{'
+	(properties+=Property)+
+	'}'
+;
+
+Property: 
+	name=ID ':' type=[Type];
+
+Type:
+	'dataType' name=ID	
+;
+
+SpecialEntity: 
+	'specialEntity' name=EntityName '{'
+	(properties+=Property)+
+	(transactions+=Transaction)+	
+	'}'	
+;
+	
+Transaction: 'trx' '{'
+	'type:' type=SubTransaction
+	(operateson+=Operateson)+
+	'}'
+;
+
+SubTransaction:
+	'exchange' | 'sale'
+;
+
+Operateson:
+	'operates_on:' operateson+=EntityName
+;
+
+RelationDom: 'rel' '{'
+	'type:' 'Composition'
+	'source:' source+=EntityName
+	'target:' target+=EntityName
+	'}'
+;
+
+// --------------------- Architecture ----------------------------------------------
+
+Architecture:
+	'arch' '{'
+		componentes+=Component+
+		relationArch+=RelationArch+
+	'}'
+;
+Component:
+	'component' name=ComponentName '{' 
+		layer+=Layer+		
+	'}' 
+;
+
+ComponentName:
+	'Back' | 'Front'	
+;
+
+Layer:
+	'layer' name=LayerName '{'
+		layerSegments+=LayerSegment*
+	'}'
+;
+
+LayerName:
+	'JavaScript' | 'Ejb' | 'War'
+;
+
+LayerSegment:
+	'layerSegment' name=LayerSegmentName '{'
+		('{' relations+=LayerSegmentRelation* '}')?
+		sublayerSegments+=SublayerSegment*
+	'}'	
+;
+
+LayerSegmentRelation:
+	'allowedToUse:' layerSegment=LayerSegmentName
+;
+
+LayerSegmentName: 
+	'Services'|'Ui'|'Store'|'RestEntity'|'Pojo'|'Facade'|'Dto'|'Util'|'Containers'
+;
+
+SublayerSegment:
+	'sublayerSegment' name=SublayerSegmentName	
+;
+
+SublayerSegmentName:
+	'Actions'|'Reducers'
+;
+
+RelationArch:
+	'relationArch' name=ID '{'
+		'source:' source=LayerName ','
+		'target:' target=LayerName
+	'}'
+;
+
+// --------------------- Technology ------------------------------------------------
+
+Technology:
+	'tech' '{'
+		java=JavaApp
+		react=ReactApp
+	'}'
+;
+// --------------------- Backend----- ----------------------------------------------
+JavaApp:
+	'javaApp' '{'
+	  jeeproject+=JeeProject
+	'}'
+;
+
+JeeProject: 'jeeProject' name=ID '{'
+	subproject+=Subproject+
+'}'
+;
+
+Subproject: 'subproject' name=ID '{'
+	epackage+=Epackage+ ','
+	library+=Library+ ','
+	descriptor+=Descriptor+
+'}'
+;
+
+AbstractClass: 'abstractClass' name=ID '{' 
+	attribute+=Attribute*
+	methodClass+=MethodBack*
+	('use :' annotation=[Annotation])*
+	abstractMethod+=AbstractMethod*
+'}'
+;
+
+GenericClass: 'genericClass' name=ID '{' 
+	attribute+=Attribute*
+	methodClass+=MethodBack*
+	('use :' annotation=[Annotation])* // *: 0-n   +:1-n   ?:optional
+	('extends :' abs=[AbstractClass])?
+	('implements :' imp=[Einterface])*
+'}'
+;
+
+Einterface: 'eInterface' name=ID '{'
+	attribute+=Attribute*
+	abstractMethod+=AbstractMethod*
+'}'	
+;
+
+NativeClass: 'nativeClass' name=ID '{' 
+	attribute+=Attribute*
+	methodClass+=MethodBack*
+'}'
+;
+
+Eclass :
+	AbstractClass|GenericClass|NativeClass|Annotation
+;
+
+Attribute: 'attribute' name=ID ':' type=[Eclass]
+;
+
+Epackage: 'epackage' name=ID '{'
+	eclass+=Eclass*	
+'}'
+;
+
+MethodBack: 'methodBack' name=ID '{'
+	('argument' arg=[Eclass])* 
+	('return' type=[Eclass])?
+'}'
+;
+
+AbstractMethod: 'abstractMethodBack' name=ID '{'
+	('argument' arg=[Eclass])* 
+	('return' type=[Eclass])?
+'}'
+;
+
+Descriptor: 'descriptor' name=ID '{'
+	'path' path=STRING
+'}'
+;
+
+Annotation: 'annotation' name=ID '{'
+	('propertie' propertie=STRING)*
+'}'
+;
+
+Library : 'library' name=ID '{'
+  'isNative' isNative=Boolean
+   annotation+= Annotation*
+'}';
+
+Boolean:
+'true'|'false'
+;
+// --------------------- Frontend---- ----------------------------------------------
+
+AbstractFrontElement:
+	ReactApp | Functionality | Directory | JsModule | Type |
+	RouterComponent | Container | Visualizer | ServiceFront |
+	File | State | Action | ActionCreator | ActionDispatcher |
+	Reducer |  AxiosRequest;	
+	
+ReactApp:
+'reactApp' '{'	
+	(elements+=AbstractFrontElement)+
+	('performs:' func=[Functionality])+
+	('holds:' dir=[Directory])+
+	('use:' mod=[JsModule])+
+'}'
+;
+
+Functionality:
+'functionality' name=ID '{' 
+	('uses:' route=[RouterComponent])*
+	('wraps:'wrap=[Container])*
+	('render:'render=[Visualizer])+
+	('state:'state=[State])*
+	('calls:'service=[ServiceFront])*
+	'organizedBy:' type=[Directory]
+'}'
+;
+
+RouterComponent:
+'router' name=ID '{'
+	'inWithin:' type=[Directory]
+	'use:' type=[JsModule]
+	'route:' route=[UIComponent]
+'}'
+;
+
+UIComponent:
+	RouterComponent | Visualizer
+;
+
+Container:
+'container' name=ID '{'
+	'inWithin:' type=[Directory]
+	('dispatch:' type=[ActionDispatcher])?
+	('map:' type=[Reducer])*
+	'use:' type=[JsModule]
+'}'	
+;
+
+Visualizer:
+'visualizer' name=ID '{'
+	'inWithin:' type=[Directory]
+	('use:' type=[JsModule])+
+	(methods+=JsMethod)+
+'}'
+;
+
+ServiceFront: 
+'service' name=ID '{' 
+	'use:' type=[JsModule]
+	('method:' method=STRING)+
+	(requests+=AxiosRequest)+
+'}'
+;
+
+
+Directory:
+'directory' name=ID '{' 
+	('has:'+file=[File])*
+	('contains:'subdirectory=[Directory])*
+	'purpose:' purpose=STRING	
+'}'
+;
+
+File:
+	Md | Js | Json | Css;
+
+Md:
+'md' name=ID '{'
+	'type:' type=STRING
+'}'
+;
+
+Js: 
+'js' name=ID '{'
+	'type:' type=STRING
+'}'
+;
+
+Json:
+'json' name=ID '{'
+	'type:' type=STRING
+'}';
+
+Css:
+'css' name=ID '{'
+	'type:' type=STRING
+'}'
+;
+
+State:
+'state' name=ID '{'
+	('handleAction:' action=[Action])*
+	('handleReducer:' reducer=[Reducer])*
+'}'
+;
+
+Action:
+'action' name=ID '{' 
+	('create:'actionCreator=[ActionCreator])*
+	('dispatch:'actionDispatcher=[ActionDispatcher])*
+	'actionDirectory:' dir=[Directory]
+'}'
+;
+
+ActionCreator:
+'actionCreator' name=ID '{'
+	'type:' type=STRING
+'}'
+;
+
+ActionDispatcher:
+'actionDispatcher' name=ID '{'
+	('use:' type=[ActionCreator])*
+'}'
+;
+
+Reducer:
+'reducer' name=ID '{'
+	('catch:' type=[ActionCreator])+
+	'reducerDirectory:' type=[Directory]
+'}'
+;
+
+JsModule:
+'module' name=ID '{'
+	'presentIn:' type=[Directory]
+'}'
+;
+
+
+//----------
+
+
+JsMethod:
+	'method' name=ID '{'
+		'jsMethodType:' type=JsMethodType
+		(arguments+=JsMethodArgs)*
+		('returns:' Boolean)? 
+	'}'
+;
+
+JsMethodType:
+	'reactConstructor' | 'reactRender' | 'reactLifecycle' | 'customJsMethod'
+;
+
+JsMethodArgs:
+	'jsmethodArgument'name=ID
+;
+
+AxiosRequest:
+	'axiosRequest' name=ID '{'
+		'restMethod:' axiosRestMethod=('getMethod'|'postMethod')
+		'URL:' url=STRING
+		('data:' data=JsMethodArgs)?
+	'}'
+;
+
+//----------
