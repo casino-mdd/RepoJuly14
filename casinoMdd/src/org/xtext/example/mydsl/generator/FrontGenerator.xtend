@@ -1,4 +1,4 @@
-package org.xtext.example.mydsl.generator
+package org.xtext.example.mydsl1.generator
 
 import javax.inject.Inject
 import org.eclipse.xtext.generator.AbstractGenerator
@@ -7,14 +7,15 @@ import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.eclipse.xtext.naming.IQualifiedNameProvider
 import java.util.ArrayList
-import org.xtext.example.mydsl.myDsl.EntityName
-import org.xtext.example.mydsl.myDsl.Json
-import org.xtext.example.mydsl.myDsl.Property
-import org.xtext.example.mydsl.myDsl.GeneralEntity
-import org.xtext.example.mydsl.myDsl.Visualizer
+import org.xtext.example.mydsl1.myDsl.EntityName
+import org.xtext.example.mydsl1.myDsl.Json
+import org.xtext.example.mydsl1.myDsl.Property
+import org.xtext.example.mydsl1.myDsl.GeneralEntity
+import org.xtext.example.mydsl1.myDsl.Visualizer
+import org.xtext.example.mydsl1.myDsl.ServiceFront
 
 public class FrontGenerator extends AbstractGenerator {
-	
+
 	@Inject extension IQualifiedNameProvider
 
 	override doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
@@ -28,19 +29,36 @@ public class FrontGenerator extends AbstractGenerator {
 
 
 		var visualizerComponents = resource.allContents.toIterable.filter(Visualizer);
-		var customVisualizer = visualizerComponents.get(1);
-		
-		for(v : visualizerComponents){
-			System.out.println("Vis component" + v.fullyQualifiedName);
-			if(v.fullyQualifiedName.equals("componentCustomVisualizer")){
-				customVisualizer = v;	
+
+		//var mainVisualizer = visualizerComponents.get(0);
+		var customVisualizer = resource.allContents.toIterable.filter(Visualizer).get(1);
+		var mainVisualizer = resource.allContents.toIterable.filter(Visualizer).get(0);
+		var formVisualizer = resource.allContents.toIterable.filter(Visualizer)	.get(2);
+
+		//var formVisualizer = visualizerComponents.get(2);
+
+		for(v : resource.allContents.toIterable.filter(Visualizer)){
+			System.out.println("Vis component" + v.name);
+			if(v.name.equals("componentMainVisualizer")){
+				mainVisualizer = v;
+			}
+			if(v.name.equals("componentCustomVisualizer")){
+				customVisualizer = v;
+			}
+			if(v.name.equals("componentCustomCreationVisualizer")){
+				formVisualizer = v;
 			}
 		}
-		
+
+		println('form visu' + formVisualizer.name)
+		println('main visu' + mainVisualizer.name)
+		println('custom visu' + customVisualizer.name)
 		for (e : resource.allContents.toIterable.filter(EntityName))
 			entities.add(e);
 
 		fsa.generateFile(reactSrcDirectory + "/Store/Constants.js", compileConstants(entities));
+
+		var service = resource.allContents.toIterable.filter(ServiceFront).get(0)
 
 		for (uiComp : resource.allContents.toIterable.filter(EntityName)) {
 			fsa.generateFile(reactSrcDirectory + "UI/"+ uiComp.name + "/" + uiComp.name +".js",
@@ -49,14 +67,14 @@ public class FrontGenerator extends AbstractGenerator {
 				reactSrcDirectory + "Store/Actions/" + uiComp.name + "Actions.js",
 				uiComp.compileActionComponent
 			);
-			
+
 			fsa.generateFile(
 				reactSrcDirectory + "Store/Reducers/" + uiComp.name + "Reducer.js",
 				uiComp.compileReducers
 			);
 			fsa.generateFile(
 				reactSrcDirectory + "Services/" + uiComp.name + "Services.js",
-				uiComp.compileService
+				compileService(uiComp, service)
 			);
 			fsa.generateFile(
 				reactSrcDirectory + "Containers/" + uiComp.name + "Container.js",
@@ -73,62 +91,108 @@ public class FrontGenerator extends AbstractGenerator {
 
 			fsa.generateFile(
 				reactSrcDirectory + "UI/" + uiComp.name.name + "/" + uiComp.name.name + "Form.js",
-				uiComp.compileUiForm
+				compileUiForm(uiComp, formVisualizer)
 			);
 
 		}
-
+		fsa.generateFile(reactSrcDirectory+"index.js", compileMainVis(mainVisualizer))
+		fsa.generateFile(reactSrcDirectory+"App.js", compileAppJs(mainVisualizer))
 	}
-	 
-	def compileUiForm(GeneralEntity e) '''
+
+
+ 	def compileMainVis(Visualizer v)'''
 		import React from 'react';
-		
-		class «e.name.name»Form extends React.Component{
-			
-			constructor(props){
-				super(props);
-				
-			}
-			
-			handleSubmit(e){
-				e.preventDefault();
-				this.props.form.validateFieldsAndScroll((err, values) => {
+		import ReactDOM from 'react-dom';
+		import {Provider} from 'react-redux';
+		import {BrowserRouter} from 'react-router-dom';
+		import App from './App';
+		import Store from './Store/Store';
+		import * as serviceWorker from './serviceWorker'
+		ReactDOM.render(
+		    <Provider store={Store}>
+		        <BrowserRouter>
+		            <App/>
+		        </BrowserRouter>
+		    </Provider>,
+		    document.getElementById('root')
+		);
+
+		serviceWorker.unregister();
+ 	'''
+ 	def compileAppJs(Visualizer v)'''
+ 	import React from 'react'
+ 	class App extends React.Component{
+ 	Â«FOR method: v.methodsÂ»
+ 		Â«if(method.type.equals('reactRender')){
+ 			'''
+ 			Â«method.nameÂ»(){
+ 				return(<div></div>);
+ 			}
+ 			'''
+ 		}Â»
+ 	Â«ENDFORÂ»
+ 	}
+ 	export default App;
+ 	'''
+
+	def compileUiForm(GeneralEntity e, Visualizer v) '''
+		import React from 'react';
+
+		class Â«e.name.nameÂ»Form extends React.Component{
+			Â«FOR method: v.methodsÂ»
+
+			Â«var i = 0Â»
+			Â«var args = ""Â»
+
+			Â«while( i < method.arguments.length){
+				if(i < method.arguments.length()){
+					args += method.arguments.get(i).name
+				}
+				else{
+					args += method.arguments.get(i).name + ","
+				}
+				i = i+1
+			}Â»
+			Â«method.nameÂ»( Â«argsÂ» ){
+				Â«if (method.type.equals('reactConstructor')) "super("+args+")"Â»
+				Â«if (method.type.equals('reactConstructor')) "this.state={}"Â»
+				Â«if (method.type.equals('reactRender')) "return(<div></div>);"Â»
+				Â«if (method.type.equals('customJsMethod')){
+					'''
+					Â«argsÂ».preventDefault();
+
+					this.props.form.validateFieldsAndScroll((err, values) => {
 					if(!err){
-						const «e.name.name»Info = {
-						              		«FOR p : e.properties»
-						              			«IF p.name !='createdAt' && p.name !='updatedAt' »
-						              				«p.name»: values.«p.name»
-						              			«ENDIF»
-											«ENDFOR»
+						const Â«e.name.nameÂ»Info = {
+						              		Â«FOR p : e.propertiesÂ»
+						              			Â«IF p.name !='createdAt' && p.name !='updatedAt' Â»
+						              				Â«p.nameÂ»: values.Â«p.nameÂ»
+						              			Â«ENDIFÂ»
+											Â«ENDFORÂ»
 						};
-						this.props.create«e.name.name»(«e.name.name»Info);
+						this.props.createÂ«e.name.nameÂ»(Â«e.name.nameÂ»Info);
 					}
 					else{
 					    ErrorMsg('Incomplete Info');
 					}
 				}
-				
-				render(){
-					
-					return(
-					
-					);
-					
-				}
+					'''
+				} Â»
 			}
-				
-			export default Form.create()(«e.name.name»Form)
+			Â«ENDFORÂ»
+			export default Form.create()(Â«e.name.nameÂ»Form)
 	'''
+
 	def compileUiComponent(EntityName e, Visualizer v)'''
  	import react, {Component} from 'react'
-	 	  	
-	class «e.name» extends Component{
-		«FOR method: v.methods»
-		
-		«var i = 0»
-		«var args = ""»
-		
-		«while( i < method.arguments.length){
+
+	class Â«e.nameÂ» extends Component{
+		Â«FOR method: v.methodsÂ»
+
+		Â«var i = 0Â»
+		Â«var args = ""Â»
+
+		Â«while( i < method.arguments.length){
 			if(i < method.arguments.length()){
 				args += method.arguments.get(i).name
 			}
@@ -136,108 +200,123 @@ public class FrontGenerator extends AbstractGenerator {
 				args += method.arguments.get(i).name + ","
 			}
 			i = i+1
-		}»
-		
-		«method.name»( «args» ){
-			
+		}Â»
+
+		Â«method.nameÂ»( Â«argsÂ» ){
+			Â«if (method.type.equals('reactConstructor')) "super("+args+")"Â»
+			Â«if (method.type.equals('reactConstructor')) "this.state={}"Â»
 		}
-		«ENDFOR»
+		Â«ENDFORÂ»
 	}
-	
-	return default «e.name»
+
+	return default Â«e.nameÂ»
 	 '''
-	 
+
     def compileActionComponent(EntityName e)'''
-	 import {«e.name»ReducerConstants as C} from ''
-	 
-	 const set«e.name»s = («e.name»s) => {
+	 import {Â«e.nameÂ»ReducerConstants as C} from ''
+
+	 const setÂ«e.nameÂ»s = (Â«e.nameÂ»s) => {
 	 	return {
-	 		type: SET_C.«e.name»S_LIST,
-	 		«e.name»s
+	 		type: C.SET_Â«e.name.toUpperCaseÂ»S_LIST,
+	 		Â«e.nameÂ»s
 	 	}
 	 }
-	 
-	 export const fetch«e.name»s = () => {
+
+	 export const fetchÂ«e.nameÂ»s = () => {
 	 	return dispatch => {
-	 		«e.name»Services.get«e.name»List()
+	 		Â«e.nameÂ»Services.getÂ«e.nameÂ»List()
 	 		.then(response => {
-	 			dispach( set«e.name»s(response.data));
+	 			dispach( setÂ«e.nameÂ»s(response.data));
 	 		})
 	 		.catch(err => {
-	 			
+
 	 		})
 	 	}
 	 }
-	 
-	 export const create«e.name» = («e.name.toLowerCase()»Info) => {
+
+	 export const createÂ«e.nameÂ» = (Â«e.name.toLowerCase()Â»Info) => {
 	 	return dispatch
 	 }
-	  	
+
 	'''
-	 
+
 	def compileReducers(EntityName e) '''
-		import {«e.name»ReducerConstants as C} from ''
-		
+		import {Â«e.nameÂ»ReducerConstants as C} from ''
+
 		const initialState = {
-	  		«e.name.toLowerCase()»s: [],
+	  		Â«e.name.toLowerCase()Â»s: [],
 	  	};
-		
-		export default function «e.name»Reducer(state = initialState, action){
+
+		export default function Â«e.nameÂ»Reducer(state = initialState, action){
 			switch(action.type){
-				case C.SET_«e.name.toUpperCase()»_LIST:
+				case C.SET_Â«e.name.toUpperCase()Â»_LIST:
 				return {
 				...state,
-  					«e.name.toLowerCase()»s: action.«e.name.toLowerCase»s
+  					Â«e.name.toLowerCase()Â»s: action.Â«e.name.toLowerCaseÂ»s
 				}
 				default:
 					return state;
   			}
 	  	}
-
 	 '''
-	 
- 	def compileService(EntityName e)'''
+
+ 	def compileService(EntityName e, ServiceFront service)'''
  	 import request from './RequestWrapper';
- 	 
- 	 function create«e.name»(«e.name»Info){
- 	 	
- 	 }
- 	 
- 	 function get«e.name»List(){
- 	 	
- 	 }
+
+ 	 Â«FOR request: service.requestsÂ»
+		Â«var args = ""Â»
+		Â«var isPostMethod = falseÂ»
+
+ 	 	Â«if (request.axiosRestMethod.equals("postMethod")){
+ 	 		args = request.data.name
+ 	 		isPostMethod = true
+ 	 		''
+		}Â»
+  		function Â«request.axiosRestMethodÂ»Â«e.nameÂ»(Â«argsÂ»){
+  			return request({
+  				method: "Â«if(isPostMethod == true)'POST' else 'GET' Â»",
+  				url: "Â«e.nameÂ»/Â«if(isPostMethod) 'create' + e.name else 'get'+e.nameÂ»"
+  				Â«if(isPostMethod){
+  					'data: ' + args
+  				}Â»
+  			});
+  		}
+ 	 Â«ENDFORÂ»
+
  	 export default{
- 	 	
+ 	 	Â«FOR request: service.requestsÂ»
+ 	 		Â«request.axiosRestMethodÂ»Â«e.nameÂ»,
+ 	 	Â«ENDFORÂ»
  	 };
- 	''' 
- 	
+ 	'''
+
  	def compileContainer(EntityName e)'''
-	 import {} from ''
-	 
+	 import {connect} from 'react-redux';
+
 	 const mapStateToProps = (state) => {
 	 	return {
-	 		
+
 	 	};
 	 }
-	 
+
 	 const mapDispatchToProps = (dispatch) => {
 	 	return{
-	 		
+
 	 	};
-	 } 	
-	 
+	 }
+
 	 export default connect(mapStateToProps, mapDispatchToProps)();
  	'''
- 	
+
  	def compileConstants(ArrayList<EntityName> entities)'''
- 		«FOR e:entities»
- 			export const «e.name»ReducerConstants={
- 				
+ 		Â«FOR e:entitiesÂ»
+ 			export const Â«e.nameÂ»ReducerConstants={
+ 				SET_Â«e.name.toUpperCaseÂ»S_LIST: "SET_Â«e.name.toUpperCaseÂ»S_LIST"
  			};
- 		«ENDFOR»
-		
+ 		Â«ENDFORÂ»
+
  	'''
- 	
+
  	def compileJsonFile(Json file)'''
 	{
 		"name": "casino-front",

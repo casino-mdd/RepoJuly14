@@ -2,7 +2,7 @@ Casino{
 
 	//----------------------------- Domain -------------------------------------
 	domain {
-	
+
 		dataType String
 		dataType Boolean
 		dataType Num
@@ -26,22 +26,22 @@ Casino{
 					updatedAt:Date
 					createdAt:String
 					isActive:Boolean
-					profile:String	
+					profile:String
 					trx {
-						type: exchange	
+						type: exchange
 						operates_on: Points
 						operates_on: Reward
 						operates_on: Exchange
 					}
 					trx {
-						type: sale	
+						type: sale
 						operates_on: Points
 						operates_on: Sale
 					}
 				}
 			}
 		}
-		
+
 		module Exchange {
 			submodule Management {
 				op{
@@ -52,7 +52,7 @@ Casino{
 					type:Create
 					operates_on:Exchange
 				}
-				generalEntity Exchange {   
+				generalEntity Exchange {
 					idExchange:Num
 					idClient:Num
 					idReward:Num
@@ -65,16 +65,16 @@ Casino{
 					type:Read
 					operates_on:Points
 				}
-				generalEntity Points {   
+				generalEntity Points {
 					idPoint:Num
 				idSale:Num
 				totalPoints:Num
 				expDate:Date
 				createdAt:Date
 				}
-			}		
+			}
 		}
-	
+
 		module Office {
 			submodule Management{
 				op{
@@ -85,16 +85,16 @@ Casino{
 					type: Create
 					operates_on:Office
 				}
-				generalEntity Office {  
-					idOffice:Num 
+				generalEntity Office {
+					idOffice:Num
 					name: String
 					address: String
 					city:String
 					createdAt:Date
-					updatedAt:Date	
+					updatedAt:Date
 				}
 			}
-	
+
 			submodule RewardsMngmt{
 				op{
 					type: Read
@@ -104,16 +104,16 @@ Casino{
 					type: Create
 					operates_on:Reward
 				}
-				generalEntity Reward {   
+				generalEntity Reward {
 					idReward:Num
 					idOffice:Num
 					name: String
 					pointNeed:Num
-					isAvailable:Boolean	
-				}	
-			} 
+					isAvailable:Boolean
+				}
+			}
 		}
-	
+
 		module Employee {
 			submodule Management{
 				op{
@@ -124,7 +124,7 @@ Casino{
 					type: Create
 					operates_on:Employee
 				}
-				generalEntity Employee {   
+				generalEntity Employee {
 					idEmployee:Num
 					age:Num
 					gender:String
@@ -134,14 +134,14 @@ Casino{
 					phone:Num
 					indentificationNumber:Num
 					createdAt:Date
-					updatedAt:Date		
+					updatedAt:Date
 					idOffice:Num
 					position:String
 					admitionDate:Date
 				}
 			}
 		}
-	
+
 		module Client{
 			submodule Management {
 				op{
@@ -152,7 +152,7 @@ Casino{
 					type: Create
 					operates_on:Client
 				}
-				generalEntity Client {   
+				generalEntity Client {
 					idClient:Num
 				age:Num
 				gender:String
@@ -162,11 +162,11 @@ Casino{
 				phone:Num
 				indentificationNumber:Num
 				createdAt:Date
-				updatedAt:Date	
+				updatedAt:Date
 				}
 			}
 		}
-	
+
 		module Sale {
 			submodule Management {
 				op{
@@ -189,11 +189,11 @@ Casino{
 					token:Num
 					cost:Num
 					paymentMethod:String
-					createdAt:Date   
+					createdAt:Date
 				}
 			}
 		}
-	
+
 		rel {
 			type:Composition
 			source: Office
@@ -212,18 +212,18 @@ Casino{
 			target: User
 		}
 	} //Domain
-	
+
 	//------------------- Architecture -------------------------------
 	arch {
 		component Front {
 			layer JavaScript {
 				layerSegment Ui {
-					{ 
+					{
 						allowedToUse: Containers
 					}
 				}
-				layerSegment Containers { 
-					{ 
+				layerSegment Containers {
+					{
 						allowedToUse: Store
 					}
 				}
@@ -231,11 +231,11 @@ Casino{
 					{
 						allowedToUse: Services
 					}
-					sublayerSegment Reducers					
-					sublayerSegment Actions				
+					sublayerSegment Reducers
+					sublayerSegment Actions
 				}
-				layerSegment Services { 
-					{ 
+				layerSegment Services {
+					{
 						allowedToUse: RestEntity
 					}
 				}
@@ -244,7 +244,7 @@ Casino{
 		component Back {
 			layer War {
 				layerSegment RestEntity {
-					
+
 				}
 			}
 			layer Ejb {
@@ -252,8 +252,8 @@ Casino{
 					{
 						allowedToUse: Pojo
 						allowedToUse: Dto
-						allowedToUse: Util				
-					}				
+						allowedToUse: Util
+					}
 				}
 				layerSegment Dto {}
 				layerSegment Pojo {}
@@ -261,14 +261,14 @@ Casino{
 			}
 		}
 		relationArch FrontBack{
-			source: JavaScript, 
+			source: JavaScript,
 			target:	War
 		}
 		relationArch RestBussiness {
 			source: War,
 			target: Ejb
 		}
-		
+
 	} //Architecture
 
 	//-------------------- Technology ---------------------------------
@@ -276,12 +276,12 @@ Casino{
 		//Back
 		javaApp {
 		 jeeProject casino_ear {
-		 	
+
 		 	subproject casino_ejb{
 		 		epackage facade{
 		 			genericClass EntityManager{}
 		 			abstractClass AbstractFacade{
-		 				attribute emf : EntityManager			
+		 				attribute emf : EntityManager
 		 			}
 		 			genericClass xFacade{
 		 				extends : AbstractFacade
@@ -291,10 +291,10 @@ Casino{
 		 		epackage pojo{}
 		 		epackage util{
 		 			nativeClass String{}
-		 			genericClass JsonImpl{} 
+		 			genericClass JsonImpl{}
 		 			genericClass JsonUtil{
-		 				attribute jsonContent : String 
-		 				methodBack objectToJson { 
+		 				attribute jsonContent : String
+		 				methodBack objectToJson {
 		 					argument JsonImpl
 		 					return String
 		 				}
@@ -311,15 +311,15 @@ Casino{
 		 			annotation EJB {}
 		 		},
 		 		descriptor persistence_xml{ path "config"}
-		 	} 
-		 	
+		 	}
+
 		 	subproject casino_war{
 		 		epackage restEntity{
 		 			abstractClass AbstractRest{
 		 			}
 		 			genericClass xRest{
 		 				extends :AbstractRest
-		 			} 
+		 			}
 		 		},
 		 		library jdk8{isNative true}
 		 		library JAX_WS{
@@ -331,11 +331,11 @@ Casino{
 		 		},
 		 		descriptor web_xml{ path "WEB-INF"}
 		 	}
-		 	
+
 		 }//jeeProject
 		}
-		
-		
+
+
 		//Front
 		reactApp{
 			module React{
@@ -380,13 +380,13 @@ Casino{
 				type: 'code'
 			}
 			js Constants{
-				type: 'code'	
+				type: 'code'
 			}
 			js CustomContainer{
 				type: 'code'
 			}
 			css CustomCss{
-				type: 'style sheet'	
+				type: 'style sheet'
 			}
 			directory Styles{
 				has: CustomCss
@@ -415,7 +415,7 @@ Casino{
 			}
 			directory UI {
 				contains: CustomFunctionalityDir
-				purpose: 'Contains UI components'	
+				purpose: 'Contains UI components'
 			}
 			directory CustomFunctionalityDir{
 				purpose: 'Contains Components for custom func.'
@@ -428,7 +428,7 @@ Casino{
 				purpose: 'State management'
 			}
 			js CustomReducer {
-				type: 'code'	
+				type: 'code'
 			}
 			js CustomActions{
 				type: 'code'
@@ -463,7 +463,7 @@ Casino{
 				type: 'documentation'
 			}
 			router MainRouter{
-				inWithin: src 
+				inWithin: src
 				use: Router
 				route: MainVisualizer
 			}
@@ -494,7 +494,25 @@ Casino{
 				}
 				method render{
 					jsMethodType: reactRender
-				}				
+				}
+			}
+
+			visualizer CustomCreationVisualizer{
+				inWithin: CustomFunctionalityDir
+				use: Ant
+				use: React
+				method constructor{
+					jsMethodType: reactConstructor
+					jsmethodArgument props
+				}
+				method handleSubmit{
+					jsMethodType: customJsMethod
+					jsmethodArgument e
+				}
+
+				method render{
+					jsMethodType: reactRender
+				}
 			}
 			action CustomAction{
 				create: CustomActionCreator
@@ -510,7 +528,7 @@ Casino{
 			reducer CustomReducer{
 				catch: CustomActionCreator
 				reducerDirectory: Reducers_
-			}	 
+			}
 			container CustomContainer{
 				inWithin: Containers_
 				dispatch: CustomActionDispatcher
@@ -536,7 +554,7 @@ Casino{
 			use: Axios
 			use: Router
 			use: Ant
-			use: Redux 
+			use: Redux
 		} //React
 	} //Tech
 }// Casino
